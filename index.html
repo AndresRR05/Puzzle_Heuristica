@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Heuristica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-1: #f8f4ed;
+            --bg-2: #ece5d6;
+            --ink: #1f1f1f;
+            --muted: #5b5b5b;
+            --line: #d6ccb7;
+            --card: #fffdfa;
+            --accent: #0d7a6e;
+            --accent-2: #0a645a;
+            --danger-bg: #f6dfdf;
+            --danger-ink: #7f1d1d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Space Grotesk", sans-serif;
+            color: var(--ink);
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 8% 12%, #fff9ee 0%, transparent 46%),
+                radial-gradient(circle at 92% 82%, #e5efe8 0%, transparent 40%),
+                linear-gradient(135deg, var(--bg-1), var(--bg-2));
+            padding: 28px 18px;
+            display: grid;
+            place-items: center;
+        }
+
+        .panel {
+            width: min(780px, 100%);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            box-shadow: 0 16px 45px rgba(41, 34, 20, 0.13);
+            padding: 30px;
+            animation: reveal .55s ease-out;
+        }
+
+        .kicker {
+            display: inline-block;
+            font-size: 12px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: clamp(1.45rem, 2.6vw, 2rem);
+            line-height: 1.1;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 600;
+            margin-bottom: 7px;
+        }
+
+        .field input {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+            padding: 11px 12px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(13, 122, 110, 0.12);
+        }
+
+        .hint {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.76rem;
+        }
+
+        .actions {
+            margin-top: 18px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-2));
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 700;
+            padding: 11px 16px;
+            cursor: pointer;
+            transition: transform .15s ease, filter .2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+        .alert {
+            margin-bottom: 16px;
+            padding: 11px 12px;
+            border-radius: 12px;
+            background: var(--danger-bg);
+            color: var(--danger-ink);
+            border: 1px solid #efc0c0;
+            font-size: 0.9rem;
+        }
+
+        .result {
+            margin-top: 22px;
+            border-top: 1px dashed var(--line);
+            padding-top: 18px;
+            animation: rise .4s ease-out;
+        }
+
+        .meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 8px 0 14px;
+        }
+
+        .chip {
+            background: #eef7f5;
+            color: #13443e;
+            border: 1px solid #cde6e2;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: .8rem;
+            font-weight: 600;
+        }
+
+        .route {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .route ol {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            counter-reset: step;
+        }
+
+        .route li {
+            counter-increment: step;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid #efe7d6;
+            font-size: 0.91rem;
+        }
+
+        .route li:last-child {
+            border-bottom: none;
+        }
+
+        .route li::before {
+            content: counter(step);
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            display: inline-grid;
+            place-items: center;
+            font-size: .74rem;
+            font-weight: 700;
+            color: #fff;
+            background: #2f8a7f;
+            flex-shrink: 0;
+        }
+
+        .mono {
+            font-family: Consolas, "Courier New", monospace;
+            letter-spacing: 0.02em;
+        }
+
+        @keyframes reveal {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(.99);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .panel {
+                padding: 22px;
+                border-radius: 16px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                justify-content: stretch;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="panel">
+        <h1>Puzzle Busqueda Heuristica</h1>
+        {% if error %}
+            <div class="alert">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="grid">
+                <div class="field">
+                    <label for="estado_inicial">Estado inicial</label>
+                    <input
+                        id="estado_inicial"
+                        name="estado_inicial"
+                        type="text"
+                        value="{{ estado_inicial }}"
+                        placeholder="4, 2, 3, 1"
+                        required
+                    >
+                    <p class="hint">4 numeros separados por coma</p>
+                </div>
+                <div class="field">
+                    <label for="objetivo">Estado objetivo</label>
+                    <input
+                        id="objetivo"
+                        name="objetivo"
+                        type="text"
+                        value="{{ objetivo }}"
+                        placeholder="1, 2, 3, 4"
+                        required
+                    >
+                    <p class="hint">Debe tener tambien 4 numeros</p>
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit">Resolver puzzle</button>
+            </div>
+        </form>
+
+        {% if ruta %}
+            <section class="result">
+                <h2>Ruta encontrada</h2>
+                <div class="meta">
+                    <span class="chip">Pasos: {{ pasos }}</span>
+                    <span class="chip">Inicio: [{{ estado_inicial }}]</span>
+                    <span class="chip">Objetivo: [{{ objetivo }}]</span>
+                </div>
+                <div class="route">
+                    <ol>
+                        {% for paso in ruta %}
+                            <li><span class="mono">[{{ paso|join:', ' }}]</span></li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>
